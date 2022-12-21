@@ -1,4 +1,3 @@
-#TOKEN: 5766970401:AAEIqhAyKdmyB0uuC8dpKBhNxpDj_tdfowk
 import asyncio, os, telebot
 from telebot.types import InputFile
 from telebot.async_telebot import AsyncTeleBot
@@ -94,5 +93,5 @@ class Main:
         asyncio.run(self.bot.polling(non_stop=True))
     
 if __name__ == "__main__":
-    main = Main(token="5766970401:AAEIqhAyKdmyB0uuC8dpKBhNxpDj_tdfowk")
+    main = Main(token="")
     main.Run()
