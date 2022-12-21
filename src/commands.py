@@ -1,5 +1,4 @@
 import calendar
-from sqlite3 import complete_statement
 class commandsHandler:
 
     @staticmethod

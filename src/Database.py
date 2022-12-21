@@ -33,31 +33,24 @@ class SQLBase(sqlite3.Connection):
     def getFieldsAverageSum(self, field) -> float:
         sumFromTable:float = 0.0
         if not sqlite3.complete_statement(field):
-            for row in self.executeReadCommand(f"SELECT {field} FROM {self.dataBaseTableName};").fetchall():
-                sumFromTable+=row[0]
-                
+            sumFromTable = sum(int(row[0]) for row in self.executeReadCommand(f"SELECT {field} FROM {self.dataBaseTableName};").fetchall())
+                 
         return round(sumFromTable/self.rowsCount, 2)
 
     def getFieldsSum(self, field) -> float:
         sumFromTable:float = 0.0
         if not sqlite3.complete_statement(field):
-            for row in self.executeReadCommand(f"SELECT {field} FROM {self.dataBaseTableName};").fetchall():
-                sumFromTable+=row[0]
-        
+            sumFromTable= sum(int(row[0]) for row in self.executeReadCommand(f"SELECT {field} FROM {self.dataBaseTableName};").fetchall())
+                
         return sumFromTable
 
     def revealDatabaseFields(self, *fields) -> sqlite3.Cursor:    
         return self.executeReadCommand(f"SELECT {','.join(list(fields))} FROM {self.dataBaseTableName};")
 
     def revealDatabaseString(self, len_of_list:int = 100) -> str:
-        if int(len_of_list)  > self.MAX_STRING_LINES:
-            return ""
-
-        outputString:str = ""
+        outputString:str = "Empty stack"
         for row in self.revealDatabaseFields(*self.fields).fetchmany(int(len_of_list)):
-            for column in row:
-                outputString+= f"{column} "
-            outputString+="\n"
+            outputString+=f"{' '.join(str(column) for column in row)}\n"
 
         return outputString
     
@@ -96,8 +89,5 @@ if __name__ == "__main__":
     cost_1  INTEGER NOT NULL);
     """)
     database.executeWriteCommand("INSERT INTO STACK (name, remaining, cost, revenue, profit, profit_procent, cost_1) VALUES  ('Haski', 10, 100, 1000, 1000, 1.0, 350);")
-    #database.executedWriteCommand("INSERT INTO STACK (name) VALUES ('Bob');")
-    #database.executedWriteCommand("INSERT INTO STACK (name) VALUES ('JOHN');")
     print(database.rowsCount)
     database.close()
-    #database.executeCommand("DROP TABLE TEST")

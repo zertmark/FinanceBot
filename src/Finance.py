@@ -1,4 +1,3 @@
-import sqlite3
 from .Database import SQLBase
 import os, calendar, random
 import datetime
@@ -17,15 +16,13 @@ class Finance(SQLBase):
         return self.executeReadCommand(f"SELECT month_id, real_profit FROM {self.dataBaseTableName} WHERE name = ?;", (name_of_month , )).fetchall()[0]
     
     def getMonthProfit(self, name_of_month:str = "") -> tuple:
-        if name_of_month in calendar.month_name:
-            return self.executeReadCommand(f"SELECT real_profit FROM {self.dataBaseTableName} WHERE name = ?;", (name_of_month, )).fetchone()[0]
+        return self.executeReadCommand(f"SELECT real_profit FROM {self.dataBaseTableName} WHERE name = ?;", (name_of_month, )).fetchone()[0]
 
     def getCurrentMonthPlan(self) -> int:
         return self.executeReadCommand(f"SELECT plan FROM {self.dataBaseTableName} WHERE name = ?;", (self.getCurrentMonth(),)).fetchone()[0]
 
     def getMonthPlan(self, name_of_month:str) -> int:
-        if name_of_month in calendar.month_name:
-            return self.executeReadCommand(f"SELECT plan FROM {self.dataBaseTableName} WHERE name = ?;", (name_of_month, )).fetchone()[0]
+        return self.executeReadCommand(f"SELECT plan FROM {self.dataBaseTableName} WHERE name = ?;", (name_of_month, )).fetchone()[0]
 
     def getCurrentMonthProfit(self) -> int:
         return self.getMonthProfit(self.getCurrentMonth())
@@ -39,7 +36,6 @@ class Finance(SQLBase):
 if __name__ == "__main__":
     finance = Finance(os.path.join(os.path.dirname(os.path.abspath(__file__)), "finance.db"))
     finance.executeWriteCommand("DROP TABLE FINANCE;")
-    #stack.deleteProduct(10)
     finance.executeWriteCommand("""CREATE TABLE IF NOT EXISTS FINANCE(
     month_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
     name TEXT NOT NULL,
@@ -49,12 +45,7 @@ if __name__ == "__main__":
     names = ["Haski","Premium", "HQD"]
     for i in range(1,13):
         finance.executeWriteCommand("INSERT INTO FINANCE (name, plan, real_profit) VALUES (?,?,?);", (calendar.month_name[i],random.randint(1,10000), 0))
-        #stack.executeWriteCommand("INSERT INTO STACK (product_id, name, remaining, cost, revenue, profit, profit_procent, cost_1) VALUES  (7, 'Haski', 10, 100, 1000, 1000, 1.0, 350);")
-        #stack.executeWriteCommand("INSERT INTO STACK (name, remaining, cost, revenue, profit, profit_procent, cost_1) VALUES  (?, ?, ?, ?, ?, ?, ?);", (random.choice(names), random.randint(1, 1000), random.randint(1, 1000), random.randint(1, 1000), random.randint(1, 1000), round(random.random(), 2), random.randint(350,1000)))
 
-    
-    #stack.executeCommand("INSERT INTO STACK (name) VALUES ('JOHN');")
-    #print(stack.revealStackString(stack.RowsCount))
     print(finance.revealDatabaseString(3))
     finance.close()
 

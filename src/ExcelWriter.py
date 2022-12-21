@@ -17,6 +17,7 @@ class excelWriter(Workbook):
         for row_count, row in enumerate(dataBaseCursor.executeReadCommand(f"SELECT * FROM {dataBaseCursor.dataBaseTableName};").fetchall()):
             for column_count, column in enumerate(row):
                 self.workSheet.write(row_count+1, column_count, column)
+        
         self.close()
 
     def getFilePath(self) -> str:

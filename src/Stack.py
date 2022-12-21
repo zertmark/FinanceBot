@@ -7,10 +7,10 @@ class Stack(SQLBase):
         super().__init__(database_path, "STACK", "product_id", self.fields)
 
     def getCompleteProfit(self) -> float:
-        return self.getFieldsSum("profit")       
+        return self.getCompleteRevenue()-self.getCompleteCost()       
     
     def getCompleteProfitProcent(self) -> float:
-        return self.getFieldsAverageSum("profit_procent")
+        return round(self.getCompleteRevenue()/self.getCompleteCost(), 2)
 
     def getCompleteCost(self) -> float:
         return self.getFieldsSum("cost")
@@ -23,12 +23,7 @@ class Stack(SQLBase):
 
     def getMostProfitableProduct(self) -> str:
         MostProfitableProduct:tuple = self.executeReadCommand(f"SELECT product_id, name, remaining, max(profit_procent) FROM {self.dataBaseTableName};").fetchone()    
-        outputString:str = ""
-        if MostProfitableProduct:
-            for column in MostProfitableProduct:
-                outputString+=f"{column}\t"
-            #MostProfitableProduct = f"Most profitable product:\nID:{MostProfitableProduct[0]}\tName:{MostProfitableProduct[1]}\tRemaining:{MostProfitableProduct[2]}\tProfit:{MostProfitableProduct[3]}\n"
-        return outputString
+        return "\t".join(str(field) for field in MostProfitableProduct) if MostProfitableProduct else None
 
     def addNewDataToRow(self, row,  remaining, cost, revenue, profit, profit_procent, cost_1) -> tuple:
         for key, newFieldData in enumerate([remaining,cost,revenue,profit]):
@@ -53,13 +48,11 @@ class Stack(SQLBase):
     def searchProductInfo(self, *args) -> tuple:
         args:list = [argument.split("=") for argument in args if argument]
         outputString:str = "Didn't find anything"
-        results:list =  self.executeReadCommand(f"SELECT {', '.join([field for field in self.fields])} FROM {self.dataBaseTableName} WHERE {' AND '.join([f'{argument[0]} = ?' for argument in args])};", tuple([argument[1] for argument in args])).fetchall()
+        results:list = self.executeReadCommand(f"SELECT {', '.join([field for field in self.fields])} FROM {self.dataBaseTableName} WHERE {' AND '.join([f'{argument[0]} = ?' for argument in args])};", tuple([argument[1] for argument in args])).fetchall()
         if results:
             outputString="ID\tName\tRemaining\tCost\tRevenue\tProfit\tProfit_procent\tCost_1\n"
             for row in results:
-                for column in row:
-                    outputString+=f"{column} "
-                outputString+="\n"
+                outputString+=f"{' '.join(str(column) for column in row)}\n"
 
         return outputString
     
@@ -72,8 +65,7 @@ class Stack(SQLBase):
 
 if __name__ == "__main__":
     stack = Stack(os.path.join(os.path.dirname(os.path.abspath(__file__)), "test.db"))
-    stack.executeWriteCommand("DROP TABLE STACK;")
-    #stack.deleteProduct(10)
+    #stack.executeWriteCommand("DROP TABLE STACK;")
     stack.executeWriteCommand("""CREATE TABLE IF NOT EXISTS STACK(
     product_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
     name TEXT NOT NULL,
@@ -86,17 +78,9 @@ if __name__ == "__main__":
     """)
     names = ["Haski","Premium", "HQD"]
     for i in range(0,5):
-        #stack.executeWriteCommand("INSERT INTO STACK (product_id, name, remaining, cost, revenue, profit, profit_procent, cost_1) VALUES  (7, 'Haski', 10, 100, 1000, 1000, 1.0, 350);")
         stack.executeWriteCommand("INSERT INTO STACK (name, remaining, cost, revenue, profit, profit_procent, cost_1) VALUES  (?, ?, ?, ?, ?, ?, ?);", (random.choice(names), random.randint(1, 1000), random.randint(1, 1000), random.randint(1, 1000), random.randint(1, 1000), round(random.random(), 2), random.randint(350,1000)))
 
-    
-    #stack.executeCommand("INSERT INTO STACK (name) VALUES ('JOHN');")
-    #print(stack.revealStackString(stack.RowsCount))
     print(stack.revealDatabaseString(3))
-    #stack.addNewProduct("HQD", "10", "1000")
-    #stack.addNewProduct("BOSHKI", "10", "1000")
-    #stack.setProductInfo(6,"profit_procent", 0.99)
-    #stack.deleteProduct(6)
     print(stack.getCompleteProfit())
     print(stack.getMostProfitableProduct(), end="")
     stack.close()
