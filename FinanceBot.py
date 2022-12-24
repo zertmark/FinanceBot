@@ -1,5 +1,4 @@
 import asyncio, os, telebot
-import time
 from telebot.types import InputFile
 from telebot.async_telebot import AsyncTeleBot
 from src.Stack import Stack
@@ -121,5 +120,5 @@ class Main:
         asyncio.run(self.bot.polling(non_stop=False, allowed_updates=["message"], interval=3, timeout=20))
     
 if __name__ == "__main__":
-    main = Main(token="5766970401:AAG-FASqyH8mQqQ9V6Wwuex0MeJBq3fkwBI")
+    main = Main(token="")
     main.Run()
