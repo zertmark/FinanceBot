@@ -1,4 +1,5 @@
 import asyncio, os, telebot
+import time
 from telebot.types import InputFile
 from telebot.async_telebot import AsyncTeleBot
 from src.Stack import Stack
@@ -11,6 +12,9 @@ class MessageHandler:
         self.bot = bot
         self.stackCursor:Stack = stackCursor
         self.financeCursor:Finance = financeCursor
+        self.messageCount:int = 0
+        self.messageChunk:int = 20
+        self.messageSenderTask:asyncio.Task = None
 
     def extractArguments(self, command:str) -> list:
         return command.split()[1:]
@@ -21,21 +25,43 @@ class MessageHandler:
         
         return False
 
+    async def sendMessages(self):
+        while self.bot.replies_queue:
+            for chat_id in list(self.bot.replies_queue.keys()):
+                for reply in list(self.bot.replies_queue[chat_id]):
+                    await reply["command"](chat_id, reply["reply_message"])
+                    await asyncio.sleep(1)
+                    self.bot.replies_queue[chat_id].remove(reply)
+
+                if not len(self.bot.replies_queue[chat_id]):
+                    del self.bot.replies_queue[chat_id]
+
     async def handleMessage(self, message:telebot.types.Message) -> None:
         command:str = message.text.split()[0].lower()
-        reply:str = "Invalid command\nEnter /помощь to look at the commands"
+        reply_message:str = "Invalid command\nEnter /помощь to look at the commands"
         if command not in self.bot.commands.keys(): 
-            await self.bot.send_message(message.chat.id, reply)
+            await self.bot.send_message(message.chat.id, reply_message)
             return
-            
+     
         arguments = self.extractArguments(message.text)    
-        reply = "Error: invalid arguments"
+        reply_message = "Error: invalid arguments"
         if self.areValidArguments(command, arguments):
-            reply = self.bot.commands[command]["function"](*arguments)
+            reply_message = self.bot.commands[command]["function"](*arguments)
             if self.bot.commands[command]["text_to_print"]:
-                reply = self.bot.commands[command]["text_to_print"].format(reply)
+                reply_message = self.bot.commands[command]["text_to_print"].format(reply_message)
         
-        await self.bot.commands[command]["bot_function"](message.chat.id, reply)
+        if message.chat.id not in self.bot.replies_queue.keys():
+            self.bot.replies_queue[message.chat.id] = []
+        
+        self.bot.replies_queue[message.chat.id].append({"command":self.bot.commands[command]["bot_function"], "reply_message":reply_message})
+        
+        if not self.messageSenderTask or self.messageSenderTask.done():
+            self.messageSenderTask = asyncio.create_task(self.sendMessages())
+            await self.messageSenderTask
+
+        #await self.bot.commands[command]["bot_function"](message.chat.id, reply_message)
+        #if self.messageCount % self.messageChunk ==0:
+            #self.messageCount = 0 
 
 class Bot(AsyncTeleBot):
     def __init__(self, token: str, stackCursor:Stack, financeCursor:Finance) -> None:
@@ -43,6 +69,7 @@ class Bot(AsyncTeleBot):
         self.stackCursor:Stack = stackCursor
         self.financeCursor:Finance = financeCursor
         self.helpMessage:str = self.getHelpMessage()
+        self.replies_queue:dict = {}
         super().__init__(self.token)
         self.messageHandler:MessageHandler = MessageHandler(self, self.stackCursor, self.financeCursor)
         self.commands:dict = commandsHandler.getCommands(self, self.financeCursor, self.stackCursor)
@@ -51,11 +78,12 @@ class Bot(AsyncTeleBot):
             "FINANCE" : self.financeCursor
         }
 
+
     def setMessageHandler(self) -> None:
         self.add_message_handler(Bot._build_handler_dict(self.messageHandler.handleMessage))
 
     def isSalesNumberIncorrect(self, remaining:int = 0, sales_number:int = 0) -> bool:
-        return True if not remaining and not remaining<sales_number else False
+        return True if not remaining and not remaining < sales_number else False
 
     def sendExcelFile(self, table_name:str) -> None:
         if table_name in self.table_names.keys():
@@ -90,8 +118,8 @@ class Main:
         self.bot.setMessageHandler()
 
     def Run(self) -> None:
-        asyncio.run(self.bot.polling(non_stop=True))
+        asyncio.run(self.bot.polling(non_stop=False, allowed_updates=["message"], interval=3, timeout=20))
     
 if __name__ == "__main__":
-    main = Main(token="")
+    main = Main(token="5766970401:AAG-FASqyH8mQqQ9V6Wwuex0MeJBq3fkwBI")
     main.Run()
