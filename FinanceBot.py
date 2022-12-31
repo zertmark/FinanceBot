@@ -7,6 +7,27 @@ from src.Finance import Finance
 from src.commands import commandsHandler
 from src.ExcelWriter import excelWriter
 
+class AsyncMessageSender:
+    def __init__(self) -> None:
+        self.replies_queue:list = []
+
+    def __aiter__(self) -> object:
+        return self
+
+    async def __anext__(self):
+        if self.replies_queue:
+            return self.replies_queue.pop()
+         
+        raise StopAsyncIteration
+        
+    async def sendMessage(self, reply):
+        await reply["command"](reply["chat_id"], reply["reply_message"])  
+        
+    async def sendMessages(self) -> None:
+        async for reply in self:
+            await self.sendMessage(reply)
+            await asyncio.sleep(1)
+
 class MessageHandler:
     def __init__(self, bot, stackCursor:Stack, financeCursor:Finance) -> None:
         self.bot = bot
@@ -15,7 +36,7 @@ class MessageHandler:
         self.messageCount:int = 0
         self.messageChunk:int = 20
         self.messageSenderTask:asyncio.Task = None
-        self.replies_queue:list = []
+        self.AsyncMessageSender:AsyncMessageSender = AsyncMessageSender()
 
     def extractArguments(self, command:str) -> list:
         return command.split()[1:]
@@ -24,20 +45,7 @@ class MessageHandler:
         if self.bot.commands[command]["arguments_check"](args) and self.stackCursor.fieldsAreNotSQLCommands(args):
             return all(args)
         
-        return False
-
-    async def sendMessage(self, reply):
-        await reply["command"](reply["chat_id"], reply["reply_message"])  
-        self.replies_queue.remove(reply)
-
-    #TO:DO rewrite this
-    async def sendMessages(self) -> None:
-        tasks = []
-        for reply in list(self.replies_queue):
-            tasks.append(asyncio.create_task(self.sendMessage(reply)))
-            await asyncio.sleep(1)
-
-        await asyncio.gather(*tasks)                    
+        return False                    
     
     async def handleMessage(self, message:Message) -> None:
         command:str = message.text.split()[0].lower()
@@ -53,10 +61,10 @@ class MessageHandler:
             if self.bot.commands[command]["text_to_print"]:
                 reply_message = self.bot.commands[command]["text_to_print"].format(reply_message)
     
-        self.replies_queue.append({"command":self.bot.commands[command]["bot_function"], "reply_message":reply_message, "chat_id":message.chat.id})
+        self.AsyncMessageSender.replies_queue.append({"command":self.bot.commands[command]["bot_function"], "reply_message":reply_message, "chat_id":message.chat.id})
         
         if not self.messageSenderTask or self.messageSenderTask.done():
-            self.messageSenderTask = asyncio.create_task(self.sendMessages())
+            self.messageSenderTask = asyncio.create_task(self.AsyncMessageSender.sendMessages())
             await self.messageSenderTask
 
 class Bot(AsyncTeleBot):
