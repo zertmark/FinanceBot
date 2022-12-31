@@ -14,13 +14,13 @@ class AsyncMessageSender:
     def __aiter__(self) -> object:
         return self
 
-    async def __anext__(self):
+    async def __anext__(self) -> dict:
         if self.replies_queue:
             return self.replies_queue.pop()
          
         raise StopAsyncIteration
         
-    async def sendMessage(self, reply):
+    async def sendMessage(self, reply) -> None:
         await reply["command"](reply["chat_id"], reply["reply_message"])  
         
     async def sendMessages(self) -> None:
@@ -123,5 +123,5 @@ class Main:
         asyncio.run(self.bot.polling(non_stop=False, allowed_updates=["message"], interval=3, timeout=20))
     
 if __name__ == "__main__":
-    main = Main(token="5766970401:AAFS7weHuH0ily-9TfZgAlCb2TXKFZezAzg")
+    main = Main(token="")
     main.runBot()
